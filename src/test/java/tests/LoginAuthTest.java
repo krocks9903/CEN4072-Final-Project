@@ -4,61 +4,69 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.testng.Assert;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+import org.testng.asserts.SoftAssert;
 import utils.BaseTest;
 
-/**
- * LoginAuthTest - Tests for successful LinkedIn authentication.
- * Requires valid credentials in config.properties.
- * Contributor: [Member 1 Name]
- */
 public class LoginAuthTest extends BaseTest {
 
-    @Test(description = "Verify successful login redirects to feed page")
-    public void testSuccessfulLoginRedirectsToFeed() {
+    @BeforeClass
+    @Override
+    public void setUp() {
+        super.setUp();
         loginToLinkedIn();
-        String currentUrl = getDriver().getCurrentUrl();
-        Assert.assertTrue(currentUrl.contains("/feed"),
-                "After login, URL should contain '/feed'. Actual: " + currentUrl);
+        pause(3000);
     }
 
-    @Test(description = "Verify user profile icon appears after login")
-    public void testProfileIconVisibleAfterLogin() {
-        loginToLinkedIn();
-        WebElement profileIcon = getWait().until(
-                ExpectedConditions.presenceOfElementLocated(
-                        By.xpath("//img[contains(@class,'global-nav__me-photo') or contains(@alt,'profile')]"))
-        );
-        Assert.assertTrue(profileIcon.isDisplayed(),
-                "Profile icon/photo should be visible in the navigation bar after login");
+    @Test(priority = 1, description = "Verify login redirects to feed with correct title")
+    public void testLoginRedirectAndTitle() {
+        SoftAssert sa = new SoftAssert();
+        sa.assertTrue(getDriver().getCurrentUrl().contains("/feed"), "URL should contain /feed");
+        sa.assertTrue(getDriver().getTitle().toLowerCase().contains("linkedin"), "Title should contain LinkedIn");
+        takeScreenshot("feed_after_login");
+        sa.assertAll();
     }
 
-    @Test(description = "Verify navigation bar is present after login")
-    public void testNavBarPresentAfterLogin() {
-        loginToLinkedIn();
-        WebElement navBar = getWait().until(
-                ExpectedConditions.presenceOfElementLocated(By.id("global-nav"))
-        );
-        Assert.assertTrue(navBar.isDisplayed(), "Global navigation bar should be visible after login");
+    @Test(priority = 2, description = "Verify nav bar has expected links")
+    public void testNavBarLinksPresent() {
+        SoftAssert sa = new SoftAssert();
+        WebElement nav = getWait().until(ExpectedConditions.presenceOfElementLocated(By.id("global-nav")));
+        String navText = nav.getText().toLowerCase();
+        sa.assertTrue(navText.contains("home"), "Nav should have Home");
+        sa.assertTrue(navText.contains("jobs"), "Nav should have Jobs");
+        sa.assertTrue(navText.contains("messaging"), "Nav should have Messaging");
+        sa.assertAll();
     }
 
-    @Test(description = "Verify the page title changes after login")
-    public void testPageTitleAfterLogin() {
-        loginToLinkedIn();
-        getWait().until(ExpectedConditions.urlContains("/feed"));
-        String title = getDriver().getTitle();
-        Assert.assertTrue(title.toLowerCase().contains("feed") || title.toLowerCase().contains("linkedin"),
-                "Page title after login should reference feed or LinkedIn. Actual: " + title);
+    @Test(priority = 3, description = "Scroll feed and verify dynamic content loads")
+    public void testScrollFeedLoadsContent() {
+        Long initialHeight = (Long) getJs().executeScript("return document.body.scrollHeight");
+        scrollDownByPixels(800);
+        pause(2000);
+        scrollDownByPixels(800);
+        pause(2000);
+        scrollDownByPixels(800);
+        pause(2000);
+        Long newHeight = (Long) getJs().executeScript("return document.body.scrollHeight");
+        Assert.assertTrue(newHeight > initialHeight, "Page should grow as feed loads. Initial: " + initialHeight + " New: " + newHeight);
+        takeScreenshot("feed_scrolled");
     }
 
-    @Test(description = "Verify the Messaging icon is accessible after login")
-    public void testMessagingIconAfterLogin() {
-        loginToLinkedIn();
-        WebElement messagingIcon = getWait().until(
-                ExpectedConditions.presenceOfElementLocated(
-                        By.xpath("//a[contains(@href,'/messaging')] | //span[text()='Messaging']/ancestor::a"))
-        );
-        Assert.assertTrue(messagingIcon.isDisplayed(),
-                "Messaging icon should be visible in nav bar after login");
+    @Test(priority = 4, description = "Scroll back to top and verify search bar visible")
+    public void testScrollBackToTopOfFeed() {
+        scrollToTop();
+        pause(1500);
+        WebElement searchBar = getWait().until(ExpectedConditions.presenceOfElementLocated(
+                By.xpath("//input[contains(@placeholder,'Search') or contains(@aria-label,'Search')]")));
+        Assert.assertTrue(searchBar.isDisplayed(), "Search bar should be visible at top");
+    }
+
+    @Test(priority = 5, description = "Verify Me menu is accessible")
+    public void testMeMenuAccessible() {
+        WebElement me = getWait().until(ExpectedConditions.presenceOfElementLocated(
+                By.xpath("//span[text()='Me'] | //img[contains(@class,'global-nav__me-photo')]")));
+        Assert.assertTrue(me.isDisplayed(), "Me menu should be visible");
+        takeScreenshot("feed_me_menu");
     }
 }

@@ -1,16 +1,6 @@
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
 <suite name="LinkedIn Test Suite" parallel="classes" thread-count="3" verbose="2">
 
-    <!--
-        PARALLEL TESTING CONFIGURATION:
-        - parallel="classes"  → Each test class runs in its own thread
-        - thread-count="3"    → Up to 3 classes run simultaneously (one per team member)
-        - Each thread gets its own Firefox instance via ThreadLocal in BaseTest
-    -->
-
-    <!-- ============================================================ -->
-    <!-- PUBLIC PAGE TESTS (No login required)                         -->
-    <!-- ============================================================ -->
     <test name="Public Page Tests">
         <classes>
             <class name="tests.HomepageTest"/>
@@ -18,10 +8,7 @@
         </classes>
     </test>
 
-    <!-- ============================================================ -->
-    <!-- AUTHENTICATED TESTS (Login required)                          -->
-    <!-- ============================================================ -->
-    <test name="Login and Authentication Tests">
+    <test name="Authentication Tests">
         <classes>
             <class name="tests.LoginAuthTest"/>
         </classes>
@@ -31,11 +18,6 @@
         <classes>
             <class name="tests.SearchTest"/>
             <class name="tests.NavigationTest"/>
-        </classes>
-    </test>
-
-    <test name="Jobs Page Tests">
-        <classes>
             <class name="tests.JobsPageTest"/>
         </classes>
     </test>

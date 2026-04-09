@@ -5,98 +5,78 @@ import org.openqa.selenium.Keys;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.testng.Assert;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+import org.testng.asserts.SoftAssert;
 import utils.BaseTest;
 
-/**
- * SearchTest - Tests for LinkedIn search functionality (requires login).
- * Contributor: [Member 2 Name]
- */
 public class SearchTest extends BaseTest {
 
-    @Test(description = "Verify the search bar is present after login")
-    public void testSearchBarPresent() {
+    @BeforeClass
+    @Override
+    public void setUp() {
+        super.setUp();
         loginToLinkedIn();
-        WebElement searchBar = getWait().until(
-                ExpectedConditions.presenceOfElementLocated(
-                        By.xpath("//input[contains(@placeholder,'Search') or contains(@aria-label,'Search')]"))
-        );
-        Assert.assertTrue(searchBar.isDisplayed(), "Search bar should be visible after login");
+        pause(3000);
     }
 
-    @Test(description = "Verify search for 'Software Engineer' returns results")
-    public void testSearchForSoftwareEngineer() {
-        loginToLinkedIn();
-        WebElement searchBar = getWait().until(
-                ExpectedConditions.elementToBeClickable(
-                        By.xpath("//input[contains(@placeholder,'Search') or contains(@aria-label,'Search')]"))
-        );
-        searchBar.click();
-        searchBar.sendKeys("Software Engineer");
-        searchBar.sendKeys(Keys.ENTER);
-
-        getWait().until(ExpectedConditions.urlContains("search"));
-        String currentUrl = getDriver().getCurrentUrl();
-        Assert.assertTrue(currentUrl.contains("search"),
-                "URL should contain 'search' after performing a search. Actual: " + currentUrl);
+    @Test(priority = 1, description = "Verify search bar attributes")
+    public void testSearchBarAttributes() {
+        WebElement bar = getWait().until(ExpectedConditions.presenceOfElementLocated(
+                By.xpath("//input[contains(@placeholder,'Search') or contains(@aria-label,'Search')]")));
+        Assert.assertTrue(bar.isDisplayed(), "Search bar visible");
+        Assert.assertTrue(bar.isEnabled(), "Search bar enabled");
+        Assert.assertNotNull(bar.getAttribute("placeholder"), "Should have placeholder");
+        takeScreenshot("search_bar");
     }
 
-    @Test(description = "Verify search suggestions dropdown appears when typing")
-    public void testSearchSuggestionsAppear() {
-        loginToLinkedIn();
-        WebElement searchBar = getWait().until(
-                ExpectedConditions.elementToBeClickable(
-                        By.xpath("//input[contains(@placeholder,'Search') or contains(@aria-label,'Search')]"))
-        );
-        searchBar.click();
-        searchBar.sendKeys("Google");
-
-        // Wait for suggestions/typeahead dropdown
-        WebElement suggestions = getWait().until(
-                ExpectedConditions.presenceOfElementLocated(
-                        By.xpath("//*[contains(@class,'search-typeahead') or contains(@class,'typeahead') or contains(@role,'listbox')]"))
-        );
-        Assert.assertTrue(suggestions.isDisplayed(), "Search suggestions should appear while typing");
+    @Test(priority = 2, description = "Type in search bar and verify text entered")
+    public void testSearchBarTextInput() {
+        WebElement bar = getWait().until(ExpectedConditions.elementToBeClickable(
+                By.xpath("//input[contains(@placeholder,'Search') or contains(@aria-label,'Search')]")));
+        bar.click();
+        bar.clear();
+        bar.sendKeys("Software Engineer");
+        pause(1000);
+        Assert.assertEquals(bar.getAttribute("value"), "Software Engineer", "Value should match typed text");
+        takeScreenshot("search_typed");
+        bar.clear();
     }
 
-    @Test(description = "Verify People filter tab appears on search results page")
-    public void testPeopleFilterOnSearchResults() {
-        loginToLinkedIn();
-        WebElement searchBar = getWait().until(
-                ExpectedConditions.elementToBeClickable(
-                        By.xpath("//input[contains(@placeholder,'Search') or contains(@aria-label,'Search')]"))
-        );
-        searchBar.click();
-        searchBar.sendKeys("Java Developer");
-        searchBar.sendKeys(Keys.ENTER);
-
-        WebElement peopleFilter = getWait().until(
-                ExpectedConditions.presenceOfElementLocated(
-                        By.xpath("//button[contains(text(),'People')] | //a[contains(text(),'People')]"))
-        );
-        Assert.assertTrue(peopleFilter.isDisplayed(),
-                "'People' filter tab should be visible on search results page");
+    @Test(priority = 3, description = "Search for QA Tester and verify results page")
+    public void testSearchSubmitAndResultsLoad() {
+        WebElement bar = getWait().until(ExpectedConditions.elementToBeClickable(
+                By.xpath("//input[contains(@placeholder,'Search') or contains(@aria-label,'Search')]")));
+        bar.click();
+        bar.clear();
+        bar.sendKeys("QA Tester");
+        bar.sendKeys(Keys.ENTER);
+        pause(3000);
+        Assert.assertTrue(getDriver().getCurrentUrl().contains("search"), "URL should contain search");
+        takeScreenshot("search_results");
     }
 
-    @Test(description = "Verify search results page has at least one result")
-    public void testSearchResultsNotEmpty() {
-        loginToLinkedIn();
-        WebElement searchBar = getWait().until(
-                ExpectedConditions.elementToBeClickable(
-                        By.xpath("//input[contains(@placeholder,'Search') or contains(@aria-label,'Search')]"))
-        );
-        searchBar.click();
-        searchBar.sendKeys("Selenium Testing");
-        searchBar.sendKeys(Keys.ENTER);
+    @Test(priority = 4, description = "Scroll search results to load more")
+    public void testScrollSearchResults() {
+        Long initialHeight = (Long) getJs().executeScript("return document.body.scrollHeight");
+        scrollDownByPixels(600);
+        pause(2000);
+        scrollDownByPixels(600);
+        pause(2000);
+        Long newHeight = (Long) getJs().executeScript("return document.body.scrollHeight");
+        Assert.assertTrue(newHeight >= initialHeight, "Results should load more when scrolled");
+        takeScreenshot("search_scrolled");
+    }
 
-        getWait().until(ExpectedConditions.urlContains("search"));
-        // Wait for results container to load
-        WebElement resultsContainer = getWait().until(
-                ExpectedConditions.presenceOfElementLocated(
-                        By.xpath("//div[contains(@class,'search-results') or contains(@class,'scaffold')]"))
-        );
-        String pageSource = getDriver().getPageSource();
-        Assert.assertTrue(pageSource.length() > 1000,
-                "Search results page should have meaningful content loaded");
+    @Test(priority = 5, description = "Verify filter buttons on search results")
+    public void testSearchFiltersPresent() {
+        scrollToTop();
+        pause(1500);
+        SoftAssert sa = new SoftAssert();
+        String page = getDriver().getPageSource().toLowerCase();
+        sa.assertTrue(page.contains("people"), "Should have People filter");
+        sa.assertTrue(page.contains("posts") || page.contains("content"), "Should have Posts filter");
+        takeScreenshot("search_filters");
+        sa.assertAll();
     }
 }

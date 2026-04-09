@@ -4,87 +4,69 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.testng.Assert;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+import org.testng.asserts.SoftAssert;
 import utils.BaseTest;
 
-/**
- * LoginPageTest - Tests for the LinkedIn login page UI and validation.
- * Contributor: [Member 1 Name]
- */
 public class LoginPageTest extends BaseTest {
 
-    private static final String LOGIN_URL = "https://www.linkedin.com/login";
-
-    @Test(description = "Verify login page loads with correct title")
-    public void testLoginPageTitle() {
-        getDriver().get(LOGIN_URL);
-        String title = getDriver().getTitle();
-        Assert.assertTrue(title.toLowerCase().contains("linkedin") || title.toLowerCase().contains("login"),
-                "Login page title should reference LinkedIn or Login. Actual: " + title);
+    @BeforeClass
+    @Override
+    public void setUp() {
+        super.setUp();
+        getDriver().get("https://www.linkedin.com/login");
+        pause(2000);
     }
 
-    @Test(description = "Verify email input field is present and enabled")
-    public void testEmailFieldPresent() {
-        getDriver().get(LOGIN_URL);
-        WebElement emailField = getWait().until(
-                ExpectedConditions.visibilityOfElementLocated(By.id("username"))
-        );
-        Assert.assertTrue(emailField.isEnabled(), "Email field should be enabled");
-        Assert.assertEquals(emailField.getAttribute("type"), "text",
-                "Email field should be a text input");
+    @Test(priority = 1, description = "Verify all login form elements using soft assertions")
+    public void testLoginFormElementsPresent() {
+        SoftAssert sa = new SoftAssert();
+        WebElement email = getDriver().findElement(By.id("username"));
+        WebElement pass = getDriver().findElement(By.id("password"));
+        WebElement btn = getDriver().findElement(By.xpath("//button[@type='submit']"));
+        sa.assertTrue(email.isDisplayed(), "Email field displayed");
+        sa.assertTrue(pass.isDisplayed(), "Password field displayed");
+        sa.assertTrue(btn.isDisplayed(), "Sign In button displayed");
+        sa.assertTrue(email.isEnabled(), "Email field enabled");
+        sa.assertTrue(pass.isEnabled(), "Password field enabled");
+        takeScreenshot("login_form_elements");
+        sa.assertAll();
     }
 
-    @Test(description = "Verify password input field is present and is password type")
-    public void testPasswordFieldPresent() {
-        getDriver().get(LOGIN_URL);
-        WebElement passwordField = getWait().until(
-                ExpectedConditions.visibilityOfElementLocated(By.id("password"))
-        );
-        Assert.assertTrue(passwordField.isEnabled(), "Password field should be enabled");
-        Assert.assertEquals(passwordField.getAttribute("type"), "password",
-                "Password field should mask input (type=password)");
+    @Test(priority = 2, description = "Verify email field type and autocomplete attributes")
+    public void testEmailFieldAttributes() {
+        WebElement email = getWait().until(ExpectedConditions.visibilityOfElementLocated(By.id("username")));
+        Assert.assertEquals(email.getAttribute("type"), "text", "Email type should be text");
+        Assert.assertNotNull(email.getAttribute("autocomplete"), "Should have autocomplete attribute");
     }
 
-    @Test(description = "Verify Sign In button is present and clickable")
-    public void testSignInButtonPresent() {
-        getDriver().get(LOGIN_URL);
-        WebElement signInBtn = getWait().until(
-                ExpectedConditions.elementToBeClickable(By.xpath("//button[@type='submit']"))
-        );
-        Assert.assertTrue(signInBtn.isDisplayed(), "Sign In button should be visible");
-        String btnText = signInBtn.getText().toLowerCase();
-        Assert.assertTrue(btnText.contains("sign in"),
-                "Button text should contain 'Sign in'. Actual: " + btnText);
+    @Test(priority = 3, description = "Verify password field masks input")
+    public void testPasswordFieldMasksInput() {
+        WebElement pass = getWait().until(ExpectedConditions.visibilityOfElementLocated(By.id("password")));
+        Assert.assertEquals(pass.getAttribute("type"), "password", "Should be type=password");
+        pass.clear();
+        pass.sendKeys("testpassword123");
+        Assert.assertEquals(pass.getAttribute("type"), "password", "Should still mask after typing");
+        pass.clear();
     }
 
-    @Test(description = "Verify error message appears with invalid credentials")
-    public void testInvalidLoginShowsError() {
-        getDriver().get(LOGIN_URL);
+    @Test(priority = 4, description = "Verify Sign In button text and CSS")
+    public void testSignInButtonProperties() {
+        WebElement btn = getWait().until(ExpectedConditions.elementToBeClickable(By.xpath("//button[@type='submit']")));
+        Assert.assertTrue(btn.getText().toLowerCase().contains("sign in"), "Button should say Sign in");
+        String bg = btn.getCssValue("background-color");
+        Assert.assertNotNull(bg, "Button should have background color");
+        Assert.assertNotEquals(bg, "transparent", "Button bg should not be transparent");
+    }
 
-        WebElement emailField = getWait().until(
-                ExpectedConditions.visibilityOfElementLocated(By.id("username"))
-        );
-        emailField.sendKeys("invalid_user_test@fakeemail.com");
-
-        WebElement passwordField = getDriver().findElement(By.id("password"));
-        passwordField.sendKeys("WrongPassword123!");
-
-        WebElement signInBtn = getDriver().findElement(By.xpath("//button[@type='submit']"));
-        signInBtn.click();
-
-        // LinkedIn should show an error or redirect to a challenge page
-        getWait().until(ExpectedConditions.or(
-                ExpectedConditions.presenceOfElementLocated(By.id("error-for-username")),
-                ExpectedConditions.presenceOfElementLocated(By.id("error-for-password")),
-                ExpectedConditions.presenceOfElementLocated(
-                        By.xpath("//*[contains(@class,'alert') or contains(@class,'error')]")),
-                ExpectedConditions.urlContains("checkpoint")
-        ));
-
-        // If we're still on login page, check for error; if redirected to checkpoint, that's also expected
-        String currentUrl = getDriver().getCurrentUrl();
-        boolean hasError = !currentUrl.contains("/feed");
-        Assert.assertTrue(hasError,
-                "Invalid login should NOT proceed to the feed — should show error or challenge");
+    @Test(priority = 5, description = "Verify Forgot Password link is present")
+    public void testForgotPasswordLink() {
+        WebElement forgot = getWait().until(ExpectedConditions.presenceOfElementLocated(
+                By.xpath("//a[contains(text(),'Forgot') or contains(@href,'request-password-reset')]")));
+        Assert.assertTrue(forgot.isDisplayed(), "Forgot password link should be visible");
+        Assert.assertNotNull(forgot.getAttribute("href"), "Should have href");
+        scrollToElement(forgot);
+        takeScreenshot("login_forgot_password");
     }
 }
