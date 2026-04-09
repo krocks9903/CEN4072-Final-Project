@@ -1,0 +1,10 @@
+# LinkedIn Test Configuration — TEMPLATE
+# ================================================
+# Copy this file to config.properties and fill in your real credentials
+# cp config.properties.example config.properties
+# DO NOT commit config.properties to GitHub
+# ================================================
+
+linkedin.email=your_email@example.com
+linkedin.password=your_password
+linkedin.base.url=https://www.linkedin.com
