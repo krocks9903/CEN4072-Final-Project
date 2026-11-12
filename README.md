@@ -19,7 +19,7 @@
 ### Setup in IntelliJ
 1. Clone the repository:
    ```bash
-   git clone https://github.com/YOUR_TEAM/CEN4072-Final-Project.git
+   git clone https://github.com/krocks9903/CEN4072-Final-Project.git
    ```
 2. Open IntelliJ → **File → Open** → select the project folder
 3. IntelliJ will auto-detect the `pom.xml` and import Maven dependencies
