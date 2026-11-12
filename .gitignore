@@ -1,0 +1,12 @@
+# Local credentials: copy config.properties.example and fill in your own
+src/test/resources/config.properties
+
+# Maven / test output
+target/
+test-output/
+
+# IDE and OS
+.idea/
+*.iml
+.vscode/
+.DS_Store
